@@ -1,9 +1,47 @@
 from datetime import datetime
-from flask_wtf import Form
-from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
+from flask_wtf import FlaskForm
+from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField,SubmitField
+from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
+import re
 
-class ShowForm(Form):
+"""
+    Phone validation inspired from this Github repo: https://github.com/Ikman94
+"""
+
+def valid_phone(number):
+    """Validate phone numbers like:
+    1234567890 - no space
+    123.456.7890 - dot separator
+    123-456-7890 - dash separator
+    123 456 7890 - space separator
+    Patterns:
+    000 = [0-9]{3}
+    0000 = [0-9]{4}
+    -.  = ?[-. ]
+    """
+    regex = re.compile('^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$')
+    return regex.match(number)
+
+
+# Custom validators
+# https://wtforms.readthedocs.io/en/stable/validators/#custom-validators
+
+
+def validate_genres(genres):
+    def _validate(form, field):
+        error = False
+
+        for value in field.data:
+            if value not in genres:
+                error = True
+
+        if error:
+            raise ValidationError('Not valid option')
+
+    return _validate
+
+
+class ShowForm(FlaskForm):
     artist_id = StringField(
         'artist_id'
     )
@@ -16,7 +54,7 @@ class ShowForm(Form):
         default= datetime.today()
     )
 
-class VenueForm(Form):
+class VenueForm(FlaskForm):
     name = StringField(
         'name', validators=[DataRequired()]
     )
@@ -24,7 +62,7 @@ class VenueForm(Form):
         'city', validators=[DataRequired()]
     )
     state = SelectField(
-        'state', validators=[DataRequired()],
+        'state', validators=[DataRequired(),AnyOf('values')],
         choices=[
             ('AL', 'AL'),
             ('AK', 'AK'),
@@ -115,6 +153,7 @@ class VenueForm(Form):
     )
     facebook_link = StringField(
         'facebook_link', validators=[URL()]
+    
     )
     website_link = StringField(
         'website_link'
@@ -128,7 +167,7 @@ class VenueForm(Form):
 
 
 
-class ArtistForm(Form):
+class ArtistForm(FlaskForm):
     name = StringField(
         'name', validators=[DataRequired()]
     )
